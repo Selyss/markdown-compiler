@@ -1,15 +1,9 @@
-# This is a markdown test
+# h1 Heading
+## h2 Heading
+### h3 Heading
+#### h4 Heading
+##### h5 Heading
+###### h6 Heading
 
-Markdown is like text, but marked down.
+paragraph tag
 
-# Hmmmm!!
-
-What if it was marked left or right?
-
-# I'm running out of text to write in this test
-
-I really have no clue what to put here. If I had an idea of what to write, I would write it.
-
-# Almost done!
-
-Make sure to read words, don't let words read you... 

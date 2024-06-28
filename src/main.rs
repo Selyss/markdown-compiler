@@ -11,7 +11,12 @@ struct Args {
 
 enum MarkdownElement {
     Paragraph,
-    Heading,
+    HeadingOne,
+    HeadingTwo,
+    HeadingThree,
+    HeadingFour,
+    HeadingFive,
+    HeadingSix,
 }
 
 fn parse_markdown_file(filename: &str) -> io::Result<()> {
@@ -25,21 +30,53 @@ fn parse_markdown_file(filename: &str) -> io::Result<()> {
     for line in reader.lines() {
         let line_contents = line?;
 
-        if let Some(first_char) = line_contents.chars().next() {
-            match first_char {
-                '#' => current_element = MarkdownElement::Heading,
-                _ => current_element = MarkdownElement::Paragraph,
-            }
-        }
+        let mut chars = line_contents.chars();
+        current_element = match chars.next() {
+            Some('#') => match chars.take_while(|&c| c == '#').count() {
+                0 => MarkdownElement::HeadingOne,
+                1 => MarkdownElement::HeadingTwo,
+                2 => MarkdownElement::HeadingThree,
+                3 => MarkdownElement::HeadingFour,
+                4 => MarkdownElement::HeadingFive,
+                _ => MarkdownElement::HeadingSix, // Treat all other cases as H6
+            },
+            _ => MarkdownElement::Paragraph,
+        };
         match current_element {
-            MarkdownElement::Heading => {
-                let line_output = format!("<h1>{}</h1>", line_contents.trim_start_matches('#').trim());
+            MarkdownElement::HeadingOne => {
+                let line_output =
+                    format!("<h1>{}</h1>", line_contents.trim_start_matches('#').trim());
+                output_content.push(line_output);
+            }
+            MarkdownElement::HeadingTwo => {
+                let line_output =
+                    format!("<h2>{}</h2>", line_contents.trim_start_matches('#').trim());
+                output_content.push(line_output);
+            }
+            MarkdownElement::HeadingThree => {
+                let line_output =
+                    format!("<h3>{}</h3>", line_contents.trim_start_matches('#').trim());
+                output_content.push(line_output);
+            }
+            MarkdownElement::HeadingFour => {
+                let line_output =
+                    format!("<h4>{}</h4>", line_contents.trim_start_matches('#').trim());
+                output_content.push(line_output);
+            }
+            MarkdownElement::HeadingFive => {
+                let line_output =
+                    format!("<h5>{}</h5>", line_contents.trim_start_matches('#').trim());
+                output_content.push(line_output);
+            }
+            MarkdownElement::HeadingSix => {
+                let line_output =
+                    format!("<h6>{}</h6>", line_contents.trim_start_matches('#').trim());
                 output_content.push(line_output);
             }
             MarkdownElement::Paragraph => {
                 let line_output = format!("<p>{}</p>", line_contents);
                 output_content.push(line_output);
-            },
+            }
         }
     }
 
@@ -66,7 +103,7 @@ fn save_to_file(filename: &str, content: &str) -> io::Result<()> {
 fn main() {
     let args = Args::parse();
     match parse_markdown_file(&args.file) {
-        Ok(c) => todo!(),
+        Ok(_) => println!("File successfully parsed."),
         Err(e) => eprintln!("Error when parsing markdown: {}.", e),
     }
 }
