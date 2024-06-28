@@ -7,3 +7,4 @@
 
 paragraph tag
 
+Here is some **strong** text

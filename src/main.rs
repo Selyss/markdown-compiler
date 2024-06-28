@@ -28,7 +28,31 @@ fn parse_markdown_file(filename: &str) -> io::Result<()> {
     let mut current_element = MarkdownElement::Paragraph;
 
     for line in reader.lines() {
-        let line_contents = line?;
+        let line = line?;
+
+        let line_contents = if line.contains("**") || line.contains("__") {
+            let bold_replaced = line
+                .replace("**", "<strong>")
+                .replace("__", "<strong>")
+                .replace("</strong><strong>", ""); // Handle adjacent bold markers
+            let parts = bold_replaced.split("<strong>").collect::<Vec<_>>();
+            let mut new_line = String::new();
+
+            for (i, part) in parts.iter().enumerate() {
+                if i > 0 {
+                    new_line.push_str("</strong>");
+                }
+                if i < parts.len() - 1 {
+                    new_line.push_str(part);
+                    new_line.push_str("<strong>");
+                } else {
+                    new_line.push_str(part);
+                }
+            }
+            new_line
+        } else {
+            line
+        };
 
         let mut chars = line_contents.chars();
         current_element = match chars.next() {
@@ -43,6 +67,7 @@ fn parse_markdown_file(filename: &str) -> io::Result<()> {
             _ => MarkdownElement::Paragraph,
         };
         match current_element {
+            // TODO: add === and --- heading syntax
             MarkdownElement::HeadingOne => {
                 let line_output =
                     format!("<h1>{}</h1>", line_contents.trim_start_matches('#').trim());
