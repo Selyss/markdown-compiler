@@ -1,6 +1,6 @@
 use clap::Parser;
 use std::fs::File;
-use std::io::{BufRead, BufReader, Write};
+use std::io::{self, BufRead, BufReader, Write};
 use std::path::Path;
 
 #[derive(Parser, Default, Debug)]
@@ -9,72 +9,37 @@ struct Args {
     file: String,
 }
 
-fn parse_markdown_file(filename: &str) {
+enum MarkdownElement {
+    Paragraph,
+    Heading,
+}
+
+fn parse_markdown_file(filename: &str) -> io::Result<()> {
     let input_file = Path::new(filename);
-
     let file = File::open(&input_file).expect("Error: failed to read file."); // TODO: return err
-
-    let mut ptag: bool = false;
-    let mut htag: bool = false;
-
-    let mut tokens: Vec<String> = Vec::new();
-
     let reader = BufReader::new(file);
+    let mut output_content = Vec::new();
+
+    let mut current_element = MarkdownElement::Paragraph;
 
     for line in reader.lines() {
-        let line_contents = line.unwrap();
+        let line_contents = line?;
 
-        let mut first_char: Vec<char> = line_contents.chars().take(1).collect();
-
-        // now check the first character for the octothorp (i.e., heading symbol)
-        let mut s = String::new();
-        let slice = &line_contents.to_string();
-        match first_char.pop() {
-            Some('#') => {
-                if ptag {
-                    ptag = false;
-                    s.push_str("</p>\n");
-                }
-                if htag {
-                    htag = false;
-                    s.push_str("</h1>\n"); // close it if we're already open
-                } else {
-                    htag = true;
-                    s.push_str("<h1>");
-                    s.push_str(&slice[2..]); // get all but the first two characters
-                }
+        if let Some(first_char) = line_contents.chars().next() {
+            match first_char {
+                '#' => current_element = MarkdownElement::Heading,
+                _ => current_element = MarkdownElement::Paragraph,
             }
-
-            _ => {
-                if htag {
-                    htag = false;
-                    s.push_str("</h1>\n");
-                }
-
-                if !ptag {
-                    ptag = true;
-                    s.push_str("<p>");
-                }
-
-                s.push_str(&slice);
+        }
+        match current_element {
+            MarkdownElement::Heading => {
+                let line_output = format!("<h1>{}</h1>", line_contents.trim_start_matches('#').trim());
+                output_content.push(line_output);
             }
-        };
-
-        // at the very end, check if any of the tag bools are still open. If so,
-        // close them.
-        if htag {
-            htag = false;
-            s.push_str("</h1>\n");
-        }
-
-        if ptag {
-            ptag = false;
-            s.push_str("</p>\n");
-        }
-
-        // Don't push blank lines
-        if s != "<p></p>\n" {
-            tokens.push(s);
+            MarkdownElement::Paragraph => {
+                let line_output = format!("<p>{}</p>", line_contents);
+                output_content.push(line_output);
+            },
         }
     }
 
@@ -83,21 +48,25 @@ fn parse_markdown_file(filename: &str) {
     let mut output_filename = String::from(output_filename);
     output_filename.push_str(".html");
 
-    let mut outfile =
-        File::create(output_filename.to_string()).expect("Error: could not create output file.");
+    save_to_file(&output_filename, &output_content.join("\n"))?;
 
-    for line in &tokens {
-        outfile
-            .write_all(line.as_bytes())
-            .expect("Error: could not write to output file.");
-    }
+    Ok(())
+}
+
+// New function to save content to a file
+fn save_to_file(filename: &str, content: &str) -> io::Result<()> {
+    let mut outfile =
+        File::create(filename.to_string()).expect("Error: could not create output file.");
+    outfile
+        .write_all(content.as_bytes())
+        .expect("Error: could not write to output file.");
+    Ok(())
 }
 
 fn main() {
     let args = Args::parse();
-    // match parse_markdown_file(&args.file) {
-    //     Ok(c) => todo!(),
-    //     Err(e) => eprintln!("Error when parsing markdown: {}.", e),
-    // }
-    parse_markdown_file(&args.file);
+    match parse_markdown_file(&args.file) {
+        Ok(c) => todo!(),
+        Err(e) => eprintln!("Error when parsing markdown: {}.", e),
+    }
 }
